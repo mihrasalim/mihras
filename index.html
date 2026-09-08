@@ -133,6 +133,15 @@
       overflow: hidden;
     }
 
+    #particleCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
     .ambient-glow-1 {
       position: absolute;
       top: -15%;
@@ -236,10 +245,18 @@
       color: var(--text-muted);
     }
 
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
     .gradient-text {
-      background: var(--gradient-primary);
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 35%, #c084fc 70%, #38bdf8 100%);
+      background-size: 260% auto;
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: gradientShift 6s ease infinite;
       display: inline;
     }
 
@@ -421,32 +438,43 @@
       align-items: center;
     }
 
-    .availability-pill {
+    .typing-badge {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 18px;
-      border-radius: var(--radius-full);
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--accent-emerald);
-      margin-bottom: 24px;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      font-family: var(--font-mono);
+      font-size: clamp(1.1rem, 2.4vw, 1.45rem);
+      font-weight: 700;
+      color: var(--primary);
+      margin-top: 10px;
+      margin-bottom: 22px;
+      min-height: 44px;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);
     }
 
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent-emerald);
-      box-shadow: 0 0 10px var(--accent-emerald);
-      animation: pulseGreen 2s infinite;
+    .typing-prompt {
+      color: var(--secondary);
+      user-select: none;
+      font-weight: 800;
     }
 
-    @keyframes pulseGreen {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.3); opacity: 0.6; }
+    .typing-cursor {
+      display: inline-block;
+      width: 2.5px;
+      height: 1.2em;
+      background: var(--primary);
+      margin-left: 2px;
+      animation: blinkCursor 0.8s infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes blinkCursor {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
 
     .hero-title {
@@ -993,6 +1021,29 @@
       background: var(--bg-body);
       border: 3px solid var(--primary);
       box-shadow: 0 0 15px var(--primary-glow);
+      transition: all var(--transition-normal);
+      z-index: 2;
+    }
+
+    .timeline-marker::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 1.5px solid var(--primary);
+      opacity: 0.6;
+      animation: pulseRing 2.4s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+
+    @keyframes pulseRing {
+      0% { transform: scale(0.85); opacity: 0.9; }
+      100% { transform: scale(1.75); opacity: 0; }
+    }
+
+    .timeline-item:hover .timeline-marker {
+      transform: scale(1.2);
+      border-color: var(--secondary);
+      box-shadow: 0 0 25px var(--secondary);
     }
 
     .timeline-content {
@@ -1304,11 +1355,47 @@
       transition: all var(--transition-normal);
     }
 
-    .toast.show {
+    /* Dynamic Interactive Spotlight Card Effect */
+    .spotlight-card {
+      position: relative;
+      overflow: hidden;
+      --mouse-x: -500px;
+      --mouse-y: -500px;
+    }
+
+    .spotlight-card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: radial-gradient(420px circle at var(--mouse-x) var(--mouse-y), rgba(56, 189, 248, 0.14), transparent 65%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      z-index: 2;
+    }
+
+    .spotlight-card:hover::after {
+      opacity: 1;
+    }
+
+    /* Precision Scroll Reveal Animation */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1), transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .reveal.active {
       opacity: 1;
       transform: translateY(0);
-      pointer-events: auto;
     }
+
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+    .reveal-delay-4 { transition-delay: 0.4s; }
 
     /* =========================================================
        RESPONSIVE BREAKPOINTS
@@ -1386,6 +1473,7 @@
 
   <!-- Ambient Glow & Grid -->
   <div class="ambient-bg">
+    <canvas id="particleCanvas"></canvas>
     <div class="ambient-glow-1"></div>
     <div class="ambient-glow-2"></div>
     <div class="ambient-grid"></div>
@@ -1444,15 +1532,15 @@
       <div class="container">
         <div class="hero-grid">
           <div class="hero-content">
-            <div class="availability-pill">
-              <span class="status-dot"></span>
-              <span>Available for DevOps &amp; Cloud Opportunities</span>
-            </div>
-
             <h1 class="hero-title">
-              Hi, I'm <span class="gradient-text">Mihras Salim</span><br>
-              Junior DevOps Engineer
+              Hi, I'm <span class="gradient-text">Mihras Salim</span>
             </h1>
+
+            <div class="typing-badge">
+              <span class="typing-prompt">&gt;</span>
+              <span class="typing-text" id="typingRole">Junior DevOps Engineer</span>
+              <span class="typing-cursor"></span>
+            </div>
 
             <p class="hero-lead">
               Currently working as a <strong>Junior DevOps Engineer at Synnefo Solutions</strong>. Transforming software delivery with <strong>automated CI/CD pipelines</strong>, <strong>AWS cloud architectures</strong>, <strong>Kubernetes orchestration</strong>, and <strong>Terraform Infrastructure as Code</strong>.
@@ -1477,7 +1565,7 @@
 
             <div class="hero-stats">
               <div class="stat-item">
-                <h4>100%</h4>
+                <h4 class="counter" data-target="100">100%</h4>
                 <p>Automated CI/CD Workflows</p>
               </div>
               <div class="stat-item">
@@ -1493,7 +1581,7 @@
 
           <!-- Hero Terminal Showcase -->
           <div class="hero-terminal">
-            <div class="terminal-card">
+            <div class="terminal-card spotlight-card">
               <div class="terminal-header">
                 <div class="terminal-controls">
                   <span class="terminal-dot dot-red"></span>
@@ -1502,7 +1590,7 @@
                 </div>
                 <div class="terminal-title">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>
-                  <span>mihras@cloud-bastion: ~</span>
+                  <span>mihras@terminal: ~</span>
                 </div>
                 <div style="width: 40px;"></div>
               </div>
@@ -1562,41 +1650,53 @@
         </div>
 
         <div class="about-grid">
-          <div class="about-card">
+          <div class="about-card spotlight-card reveal">
             <h3 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 16px;">Who I Am</h3>
             <div class="about-bio">
               <p>
                 I'm <strong>Mihras Salim</strong>, a Junior DevOps Engineer based in Kozhikode, Kerala, with a <strong>Bachelor's degree in Computer Science from Calicut University (2022–2025)</strong>.
               </p>
               <p>
-                Currently working as a <strong>Junior DevOps Engineer at Synnefo Solutions</strong>, I actively manage cloud infrastructure, build and optimize CI/CD pipelines, author modular Terraform code, containerize microservices with Docker, and orchestrate zero-downtime rolling updates with Kubernetes and Jenkins.
+                Following my hands-on experience as a <strong>DevOps Intern at Synnefo Solutions (Aug 2025 – Feb 2026)</strong>, I currently work as a <strong>Junior DevOps Engineer at Synnefo Solutions (Feb 2026 – Present)</strong>. I actively manage AWS cloud infrastructure, build and optimize CI/CD pipelines, author modular Terraform code, containerize microservices with Docker, and orchestrate zero-downtime rolling updates with Kubernetes and Jenkins.
               </p>
               <p>
                 I view infrastructure not as static servers, but as declarative code that should be self-healing, auditable, and automated end-to-end.
               </p>
             </div>
 
-            <div class="about-highlights">
-              <div class="highlight-item">
-                <div class="highlight-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
-                </div>
-                <h5>B.Sc Computer Science</h5>
-                <p>Calicut University (2022–2025)</p>
-              </div>
-              <div class="highlight-item">
-                <div class="highlight-icon">
+            <div class="about-highlights" style="grid-template-columns: 1fr; gap: 12px;">
+              <div class="highlight-item" style="display: flex; align-items: center; gap: 14px;">
+                <div class="highlight-icon" style="margin-bottom: 0;">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
                 </div>
-                <h5>Junior DevOps Engineer</h5>
-                <p>Synnefo Solutions (Present)</p>
+                <div>
+                  <h5 style="margin: 0;">Junior DevOps Engineer</h5>
+                </div>
+              </div>
+              <div class="highlight-item" style="display: flex; align-items: center; gap: 14px;">
+                <div class="highlight-icon" style="margin-bottom: 0;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+                </div>
+                <div>
+                  <h5 style="margin: 0;">DevOps Intern</h5>
+                  <p style="margin: 0;">Synnefo Solutions (Aug 2025 – Mar 2026)</p>
+                </div>
+              </div>
+              <div class="highlight-item" style="display: flex; align-items: center; gap: 14px;">
+                <div class="highlight-icon" style="margin-bottom: 0;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                </div>
+                <div>
+                  <h5 style="margin: 0;">B.Sc Computer Science</h5>
+                  <p style="margin: 0;">Calicut University (2022–2025)</p>
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Engineering Pillars -->
           <div class="pillars-container">
-            <div class="pillar-card">
+            <div class="pillar-card spotlight-card reveal reveal-delay-1">
               <div class="pillar-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
               </div>
@@ -1606,7 +1706,7 @@
               </div>
             </div>
 
-            <div class="pillar-card">
+            <div class="pillar-card spotlight-card reveal reveal-delay-2">
               <div class="pillar-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/></svg>
               </div>
@@ -1616,7 +1716,7 @@
               </div>
             </div>
 
-            <div class="pillar-card">
+            <div class="pillar-card spotlight-card reveal reveal-delay-3">
               <div class="pillar-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
               </div>
@@ -1794,7 +1894,7 @@
 
         <div class="projects-grid">
           <!-- Project 1 -->
-          <div class="project-card">
+          <div class="project-card spotlight-card reveal">
             <div>
               <div class="project-top">
                 <span class="project-badge">AWS &amp; Kubernetes CI/CD</span>
@@ -1829,7 +1929,7 @@
           </div>
 
           <!-- Project 2 -->
-          <div class="project-card">
+          <div class="project-card spotlight-card reveal reveal-delay-1">
             <div>
               <div class="project-top">
                 <span class="project-badge">Observability &amp; Telemetry</span>
@@ -1864,7 +1964,7 @@
           </div>
 
           <!-- Project 3 -->
-          <div class="project-card">
+          <div class="project-card spotlight-card reveal reveal-delay-2">
             <div>
               <div class="project-top">
                 <span class="project-badge">Terraform Cloud Architecture</span>
@@ -1913,19 +2013,19 @@
         </div>
 
         <div class="timeline-wrapper">
-          <!-- Experience Item -->
-          <div class="timeline-item">
+          <!-- Experience Item 1: Junior DevOps Engineer -->
+          <div class="timeline-item reveal">
             <div class="timeline-marker"></div>
-            <div class="timeline-content">
+            <div class="timeline-content spotlight-card">
               <div class="timeline-header">
                 <div>
                   <h3 class="timeline-role">Junior DevOps Engineer</h3>
                   <div class="timeline-company">Synnefo Solutions</div>
                 </div>
-                <span class="timeline-date">Aug 2025 – Present</span>
+                <span class="timeline-date">Sep 2026 – Present</span>
               </div>
               <div class="timeline-body">
-                <p>Currently working on production cloud infrastructure, containerization workflows, automated CI/CD pipelines, and high-availability deployments for modern web applications.</p>
+                <p>Promoted following successful internship to manage production cloud infrastructure, containerization workflows, automated CI/CD pipelines, and high-availability deployments for modern web applications.</p>
                 <ul>
                   <li>Authoring reusable shell automation scripts to streamline internal deployment procedures and system operations.</li>
                   <li>Containerizing applications using Docker and Docker Compose, ensuring seamless dev, staging, and production parity.</li>
@@ -1937,10 +2037,34 @@
             </div>
           </div>
 
-          <!-- Education Item -->
-          <div class="timeline-item">
+          <!-- Experience Item 2: DevOps Intern (NEW) -->
+          <div class="timeline-item reveal reveal-delay-1">
             <div class="timeline-marker"></div>
-            <div class="timeline-content">
+            <div class="timeline-content spotlight-card">
+              <div class="timeline-header">
+                <div>
+                  <h3 class="timeline-role">DevOps Intern</h3>
+                  <div class="timeline-company">Synnefo Solutions</div>
+                </div>
+                <span class="timeline-date">Aug 2025 – Mar 2026</span>
+              </div>
+              <div class="timeline-body">
+                <p>Underwent intensive hands-on DevOps training and practical project delivery covering Linux system administration, containerization, and AWS infrastructure fundamentals.</p>
+                <ul>
+                  <li>Developed foundational Linux expertise across Ubuntu and RHEL, automating daily administrative workflows via Bash scripts.</li>
+                  <li>Containerized legacy services using Docker and orchestrated multi-container local testing environments with Docker Compose.</li>
+                  <li>Assisted in setting up Jenkins continuous integration pipelines, automated GitHub webhooks, and build artifact management.</li>
+                  <li>Configured AWS EC2 virtual machines, configured security group ingress/egress rules, and provisioned S3 buckets.</li>
+                  <li>Implemented system monitoring utilizing Prometheus node-exporter and created operational dashboards in Grafana.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Education Item -->
+          <div class="timeline-item reveal reveal-delay-2">
+            <div class="timeline-marker"></div>
+            <div class="timeline-content spotlight-card">
               <div class="timeline-header">
                 <div>
                   <h3 class="timeline-role">Bachelor of Science in Computer Science</h3>
@@ -2001,7 +2125,7 @@
          ========================================================= -->
     <section id="contact">
       <div class="container">
-        <div class="contact-card">
+        <div class="contact-card spotlight-card reveal">
           <div class="contact-grid">
             <div class="contact-info">
               <span class="section-tag">Let's Connect</span>
@@ -2300,6 +2424,235 @@ Remote state locked in S3 with DynamoDB lockID: 'terraform-lock-prod'.`,
       window.location.href = mailtoUrl;
       showToast('Opening email client for mihrasalim20@gmail.com...');
     }
+
+    // 9. Interactive Constellation Particle Canvas
+    const canvas = document.getElementById('particleCanvas');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      let width, height;
+      let particles = [];
+      let mouse = { x: null, y: null, radius: 150 };
+
+      function resizeCanvas() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        initParticles();
+      }
+
+      class Particle {
+        constructor() {
+          this.x = Math.random() * width;
+          this.y = Math.random() * height;
+          this.vx = (Math.random() - 0.5) * 0.7;
+          this.vy = (Math.random() - 0.5) * 0.7;
+          this.radius = Math.random() * 1.8 + 1;
+          this.isCyan = Math.random() > 0.45;
+          this.baseAlpha = Math.random() * 0.4 + 0.25;
+        }
+
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+
+          if (this.x < 0 || this.x > width) this.vx *= -1;
+          if (this.y < 0 || this.y > height) this.vy *= -1;
+
+          // Gentle mouse interaction
+          if (mouse.x != null) {
+            const dx = mouse.x - this.x;
+            const dy = mouse.y - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < mouse.radius) {
+              const force = (mouse.radius - dist) / mouse.radius;
+              this.x -= (dx / dist) * force * 1.4;
+              this.y -= (dy / dist) * force * 1.4;
+            }
+          }
+        }
+
+        draw() {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+          ctx.fillStyle = this.isCyan 
+            ? `rgba(56, 189, 248, ${this.baseAlpha})` 
+            : `rgba(129, 140, 248, ${this.baseAlpha})`;
+          ctx.shadowBlur = 6;
+          ctx.shadowColor = 'rgba(56, 189, 248, 0.5)';
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      function initParticles() {
+        particles = [];
+        const count = Math.min(Math.floor((width * height) / 20000), 55);
+        for (let i = 0; i < count; i++) {
+          particles.push(new Particle());
+        }
+      }
+
+      function animateParticles() {
+        ctx.clearRect(0, 0, width, height);
+
+        // Filament connections between particles
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 125) {
+              const alpha = (1 - dist / 125) * 0.22;
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
+              ctx.lineWidth = 0.8;
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Connection lines to cursor
+        if (mouse.x != null) {
+          for (let i = 0; i < particles.length; i++) {
+            const dx = mouse.x - particles[i].x;
+            const dy = mouse.y - particles[i].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 140) {
+              const alpha = (1 - dist / 140) * 0.35;
+              ctx.beginPath();
+              ctx.moveTo(mouse.x, mouse.y);
+              ctx.lineTo(particles[i].x, particles[i].y);
+              ctx.strokeStyle = `rgba(129, 140, 248, ${alpha})`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
+        }
+
+        particles.forEach(p => {
+          p.update();
+          p.draw();
+        });
+
+        requestAnimationFrame(animateParticles);
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+      });
+      window.addEventListener('mouseleave', () => {
+        mouse.x = null;
+        mouse.y = null;
+      });
+
+      resizeCanvas();
+      animateParticles();
+    }
+
+    // 10. Dynamic Typing Effect for Hero Role
+    const roles = [
+      "Junior DevOps Engineer",
+      "AWS Cloud Architect",
+      "Kubernetes & Docker Pro",
+      "CI/CD Pipeline Builder",
+      "Terraform & IaC Specialist",
+      "Prometheus & Observability"
+    ];
+    let roleIdx = 0;
+    let charIdx = 0;
+    let isDeleting = false;
+    const typingRoleEl = document.getElementById('typingRole');
+
+    function runTypewriter() {
+      if (!typingRoleEl) return;
+      const currentWord = roles[roleIdx];
+
+      if (isDeleting) {
+        charIdx--;
+        typingRoleEl.textContent = currentWord.substring(0, charIdx);
+      } else {
+        charIdx++;
+        typingRoleEl.textContent = currentWord.substring(0, charIdx);
+      }
+
+      let speed = isDeleting ? 38 : 75;
+
+      if (!isDeleting && charIdx === currentWord.length) {
+        speed = 2000;
+        isDeleting = true;
+      } else if (isDeleting && charIdx === 0) {
+        isDeleting = false;
+        roleIdx = (roleIdx + 1) % roles.length;
+        speed = 350;
+      }
+
+      setTimeout(runTypewriter, speed);
+    }
+    setTimeout(runTypewriter, 500);
+
+    // 11. Mouse Spotlight Card Follower
+    function initSpotlightCards() {
+      document.querySelectorAll('.spotlight-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+          card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+        });
+      });
+    }
+    initSpotlightCards();
+
+    // 12. Precision Scroll Reveal Observer
+    const revealEls = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window && revealEls.length > 0) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('active');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px'
+      });
+
+      revealEls.forEach(el => observer.observe(el));
+    } else {
+      revealEls.forEach(el => el.classList.add('active'));
+    }
+
+    // 13. Interactive Stats Counter Animation
+    const counters = document.querySelectorAll('.counter');
+    if ('IntersectionObserver' in window && counters.length > 0) {
+      const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const target = +entry.target.getAttribute('data-target');
+            let count = 0;
+            const step = Math.max(1, Math.floor(target / 40));
+            const timer = setInterval(() => {
+              count += step;
+              if (count >= target) {
+                entry.target.textContent = target + '%';
+                clearInterval(timer);
+              } else {
+                entry.target.textContent = count + '%';
+              }
+            }, 25);
+            counterObserver.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.5 });
+
+      counters.forEach(c => counterObserver.observe(c));
+    }
   </script>
 </body>
 </html>
+
